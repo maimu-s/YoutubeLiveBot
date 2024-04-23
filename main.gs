@@ -6,40 +6,40 @@ const channels = {
 }
 
 // Discord infomation
-const discord = 'CHANGE_ME: https://discord.com/api/webhooks/...'
-const youtube_url = 'https://www.youtube.com/watch?v='
+const discord = 'CHANGE_ME: https://discord.com/api/webhooks/...';
+const youtube_url = 'https://www.youtube.com/watch?v=';
 
 // SpreadSheet infomation
-const sheetId = 'CHANGE_ME: スプレッドシートのID'
-const spreadsheet = SpreadsheetApp.openById(sheetId)
-const labels = [['title', 'published', 'updated', 'videoId', 'channel', 'live', 'scheduledStartTime']]
+const sheetId = 'CHANGE_ME: スプレッドシートのID';
+const spreadsheet = SpreadsheetApp.openById(sheetId);
+const labels = [['title', 'published', 'updated', 'videoId', 'channel', 'live', 'scheduledStartTime']];
 
 // Youtube RSS URL
-var url_pre = "https://www.youtube.com/feeds/videos.xml?channel_id="
+var url_pre = 'https://www.youtube.com/feeds/videos.xml?channel_id=';
 
 // Youtube Infomation URL
-const ns_yt = XmlService.getNamespace('yt', 'http://www.youtube.com/xml/schemas/2015')
-const ns_media = XmlService.getNamespace('media', 'http://search.yahoo.com/mrss/')
-const atom = XmlService.getNamespace('http://www.w3.org/2005/Atom')
+const ns_yt = XmlService.getNamespace('yt', 'http://www.youtube.com/xml/schemas/2015');
+const ns_media = XmlService.getNamespace('media', 'http://search.yahoo.com/mrss/');
+const atom = XmlService.getNamespace('http://www.w3.org/2005/Atom');
 
 // You must activate Day.js on GAS
-const now = dayjs.dayjs()
-const minute = now.minute()
+const now = dayjs.dayjs();
+const minute = now.minute();
 
 /**
 * Discordに投稿するテキスト文を作成する
 */
 function description_text(lbc, time = now.format('YYYY/MM/DD HH:mm:ss')) {
   if (lbc == 'upcoming') {
-    return time + 'から配信予定！'
+    return time + 'から配信予定！';
   } else if (lbc == 'live') {
-    return time + 'から配信中！'
+    return time + 'から配信中！';
   } else if (lbc == 'none') {
-    return 'アーカイブはこちら'
+    return 'アーカイブはこちら';
   } else if (lbc == 'video') {
-    return '動画が投稿されました'
+    return '動画が投稿されました';
   } else {
-    return 'new content!'
+    return 'new content!';
   }
 }
 
@@ -47,22 +47,25 @@ function description_text(lbc, time = now.format('YYYY/MM/DD HH:mm:ss')) {
 * Discordに配信予約・配信開始を通知する
 */
 function post2discord(data) {
-  const type = 'application/json'
+  const type = 'application/json';
+
+  const image_url = 'https://img.youtube.com/vi/' + data.videoId + '/maxresdefault.jpg';
+  const cast_url = youtube_url + data.videoId;
 
   var message = {
     username: data.channel,
-    content: "",
+    content: '',
     tts: false,
     embeds: [
       {
-        type: "rich",
+        type: 'rich',
         title: data.title,
         description: data.description_text,
         color: 0xFF0000,
         image: {
-          url: "https://img.youtube.com/vi/" + data.videoId + "/maxresdefault.jpg",
+          url: image_url,
         },
-        url: youtube_url + data.videoId,
+        url: cast_url,
         footer: {
           text: data.time
         },
@@ -79,9 +82,9 @@ function post2discord(data) {
   // console.log(JSON.stringify(data))
 
   try {
-    UrlFetchApp.fetch(discord, options)
+    UrlFetchApp.fetch(discord, options);
   } catch (e) {
-    console.log(e)
+    console.log(e);
   }
 }
 
@@ -90,7 +93,7 @@ function mergeSheet() {
   console.log('mergeSheet');
   const main_sheet = set_sheet('main');
   const query_sheet = Object.values(channels).map((val) => {
-    return 'QUERY(\'' + escape_html(val) + '\'!A:G, "select * offset 1", 0)'
+    return 'QUERY(\'' + escape_html(val) + '\'!A:G, "select * offset 1", 0)';
   }).join(';');
 
   main_sheet.getRange(2, 1).setValue('=QUERY({' + query_sheet + '}, "where Col1 is not null order by Col3 desc", 0)');
@@ -112,7 +115,7 @@ function escape_html(string) {
       '"': '&quot;',
       '<': '&lt;',
       '>': '&gt;',
-    }[match]
+    }[match];
   });
 }
 
