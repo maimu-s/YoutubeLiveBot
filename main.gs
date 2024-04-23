@@ -26,7 +26,7 @@ const atom = XmlService.getNamespace('http://www.w3.org/2005/Atom')
 const now = dayjs.dayjs()
 const minute = now.minute()
 
-/*
+/**
 * Discordに投稿するテキスト文を作成する
 */
 function description_text(lbc, time = now.format('YYYY/MM/DD HH:mm:ss')) {
@@ -43,7 +43,7 @@ function description_text(lbc, time = now.format('YYYY/MM/DD HH:mm:ss')) {
   }
 }
 
-/*
+/**
 * Discordに配信予約・配信開始を通知する
 */
 function post2discord(data) {
