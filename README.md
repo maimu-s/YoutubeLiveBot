@@ -20,12 +20,16 @@ Webhookは、Scriptから任意のメッセージを任意のDiscordチャンネ
 2. 「連携サービス」を選択  
 3. 「ウェブフックを作成」を選択  
 <img src="img/webhook/1.png" width="70%">
+
 4. 「ウェブフックを作成」を選択  
 <img src="img/webhook/2.png" width="40%">
+
 5. 出来上がったbotを選択し、通知を投稿するテキストチャンネルを設定  
 <img src="img/webhook/3.png" width="70%">
+
 6. 「ウェブフックURLをコピー」を選択  
 <img src="img/webhook/4.png" width="70%">
+
 7. コピーしたURLをメモ帳などに貼り付けて保持しておく  
 ※このあと実施する手順がうまくいかない場合は、こちらのURLを教えていただければ鈴音舞夢側でも環境構築可能です。  
 　（でもご本人がbotの管理をできた方が何かと都合が良いと思います。）
@@ -36,10 +40,13 @@ Webhookは、Scriptから任意のメッセージを任意のDiscordチャンネ
 1. Googleドライブを開く  
 2. 「新規」を選択  
 <img src="img/gas/1.png" width="40%">
+
 3. 「Googleスプレッドシート」を選択  
 <img src="img/sheet/1.png" width="40%">
+
 4. 作成したスプレッドシートのURLの**青字部分**をコピー  
 <img src="img/sheet/2.png" width="70%">
+
 5. コピーしたIDをメモ帳などに貼り付けて保持しておく  
 
 ## Google Apps Scriptの作成
@@ -50,6 +57,7 @@ Google Apps Scriptでは、定期的にYoutubeに動画情報を取得しにい�
 1. Googleドライブを開く  
 2. 「新規」を選択  
 <img src="img/gas/1.png" width="40%">
+
 3. 「Google Apps script」を選択  
 <img src="img/gas/2.png" width="70%">
 
@@ -151,7 +159,7 @@ Google Apps Scriptでは、定期的にYoutubeに動画情報を取得しにい�
 以上の手順で、チャンネル通知がDiscordのチャットに流れるように設定できたはずです。  
 トラブルシューティングは鈴音舞夢までお問い合わせください。  
 
-Youtubeの配信通知部分でかなりお世話になってるソースコードです！ありがとうございます！  
+Youtubeの配信通知部分の参考コードです！ありがとうございます！  
 [youtube2discord](https://github.com/Tkg-tamagohan/youtube2discord)  
 
 参考記事です！ありがとうございます！  
