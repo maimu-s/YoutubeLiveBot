@@ -1,9 +1,17 @@
-# Youtube Live通知botの作成方法
+# Youtube/Twitch Live通知botの作成方法
 
 ## はじめに
 このbotを作成することで、以下のようにDiscordにチャンネルの通知を流せます。  
 <img src="img/1.png" width="50%">  
-以下より環境構築手順を記載します。  
+
+ざっくり手順を並べると、  
+①DiscordでWebhookのURLを発行  
+②Googleスプレッドシートを作成  
+③Google Apps Scriptsの作成  
+をすることでDiscordに通知を投稿することが出来ます。  
+
+現在、Youtubeの動画投稿/配信予約/配信開始、Twitchの配信開始に対応しています。  
+以下より詳細な環境構築手順を記載します。  
 
 ## WebhookのURL発行
 Webhookは、Scriptから任意のメッセージを任意のDiscordチャンネルに流すために使用します。
@@ -34,7 +42,6 @@ Webhookは、Scriptから任意のメッセージを任意のDiscordチャンネ
 <img src="img/sheet/2.png" width="70%">
 5. コピーしたIDをメモ帳などに貼り付けて保持しておく  
 
-
 ## Google Apps Scriptの作成
 Google Apps Scriptでは、定期的にYoutubeに動画情報を取得しにいき、Webhookへメッセージを送信します。  
 地味に手順多めなので、分からないことなどありましたらお気軽に問い合わせください。
@@ -53,8 +60,8 @@ Google Apps Scriptでは、定期的にYoutubeに動画情報を取得しにい�
 <img src="img/gas/4.png" width="40%">  
 <img src="img/gas/5.png" width="40%">  
 
-2. 以下のプロジェクトからソースコードをコピー&ペースト  
-https://script.google.com/d/1b_BKNGuh1IwElrHJ0WvxIp7aegnX60ZOVh1vgdkc4hvmizEoPEtcGmxP/edit?usp=sharing  
+2. 以下からソースコードをコピー&ペースト  
+[main.gs](main.gs)  
 <img src="img/gas/6.png" width="100%">  
 
 3. 「ライブラリを追加」を選択  
@@ -64,28 +71,46 @@ https://script.google.com/d/1b_BKNGuh1IwElrHJ0WvxIp7aegnX60ZOVh1vgdkc4hvmizEoPEt
 スクリプトID: ``1ShsRhHc8tgPy5wGOzUvgEhOedJUQD53m-gd8lG2MOgs-dXC_aCZn9lFB``  
 <img src="img/gas/8.png" width="50%">  
 
-5. **IDを変更せず**、「追加」を選択  
+5. **IDが「dayjs」であることを確認して**、「追加」を選択  
 <img src="img/gas/9.png" width="50%">  
 
 6. 「サービスを追加」を選択  
 <img src="img/gas/10.png" width="40%">  
 
 7. 一覧から「YouTube Data API v3」を選択  
-8. **IDを変更せず**、「追加」を選択  
+8. **IDが「YouTube」であることを確認して**、「追加」を選択  
 <img src="img/gas/11.png" width="50%">  
 
-9. main.gsの**20行目**に先ほど作成したスプレッドシートのIDを置き換える  
-(下記画像の青字部分を丸々置き換える)
-<img src="img/gas/12.png" width="80%">  
-
-10. main.gsの**49行目**に先ほど作成したWebhookのURLを置き換える  
+9. main.gsの**14行目**に先ほど作成したWebhookのURLを置き換える  
 (下記画像の青字部分を丸々置き換える)
 <img src="img/gas/13.png" width="80%">  
 
-11.  main.gsの「実行」を1回選択する  
-myFunctionが無いよってエラーが出たらOK  
-※押せない場合はとりあえず放置でOK  
+10. main.gsの**19行目**に先ほど作成したスプレッドシートのIDを置き換える  
+(下記画像の青字部分を丸々置き換える)
+<img src="img/gas/12.png" width="80%">  
+
+11. 通知したいチャンネルの情報を置き換える  
 <img src="img/gas/14.png" width="80%">  
+\<例\>  
+※YoutubeのIDは初期のURLをサポートしています！  
+　チャンネルURLが`https://www.youtube.com/channel/UCg3tKEUFef2R-wQ-hRahkiQ`の場合、後ろの`UCg3tKEUFef2R-wQ-hRahkiQ`がIDになります。  
+※チャンネル名は、Discordに通知するときのユーザー名なので、必ず一致しなくても大丈夫です！  
+　プログラムの都合上、**名前が被らないように**設定をお願いします！  
+    ```json
+    const youtube_channels = {
+        'UCFpxoltilHCmuHWeERqsUlA': '椿鬼いろは',
+        'UCOZe-9ocT5PtsWTHsYKGxAw': '仮想娘ぴま',
+        'UC46XRyRrZcNIFdiqAvMUjfQ': 'ふぇにー',
+        'UClzPnQnlA2hxxU_MATRdVew': 'Rog / Rおじ',
+        'UCVh7n8e01PTaXobSrJeGAKg': '雨宮レイナ',
+        'UCg3tKEUFef2R-wQ-hRahkiQ': '鈴音舞夢(Youtube)'
+    };
+
+    const twitch_channels = {
+        'suzunemaimu': '鈴音舞夢(Twitch)',
+        'carneinu': 'かるね犬'
+    };
+    ```
 
 ### 定期実行の設定
 
@@ -126,7 +151,7 @@ myFunctionが無いよってエラーが出たらOK
 以上の手順で、チャンネル通知がDiscordのチャットに流れるように設定できたはずです。  
 トラブルシューティングは鈴音舞夢までお問い合わせください。  
 
-GASのソースコード。お借りしました。ありがとうございます！  
+Youtubeの配信通知部分でかなりお世話になってるソースコードです！ありがとうございます！  
 [youtube2discord](https://github.com/Tkg-tamagohan/youtube2discord)  
 
 参考記事です！ありがとうございます！  
