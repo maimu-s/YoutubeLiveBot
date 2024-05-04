@@ -163,14 +163,6 @@ function set_sheet(name) {
   return sheet;
 }
 
-// Repositioning sheets
-function sheet_move() {
-  Object.values(youtube_channels).forEach((c, index) => {
-    set_sheet(c).activate();
-    spreadsheet.moveActiveSheet(index + 2);
-  })
-}
-
 /**
  * スプレッドシートからVideoIdを検索する
  */
@@ -192,25 +184,54 @@ function findId(type, sheet, id, lastRow, updated) {
 
   try {
     ids = sheet.getRange(1, 4, lastRow).getValues().map(String);
-  } catch {
+  } catch (e) {
     ids = sheet.getRange(1, 4).getValues().map(String);
   }
-  var index = ids.flat().indexOf(id);
+  const index = ids.flat().indexOf(id);
 
-  if (index == -1) {
-    if (type === 'youtube') {
-      try {
-        video_info = YouTube.Videos.list('snippet, liveStreamingDetails', { id: id, fields: 'items(snippet(liveBroadcastContent), liveStreamingDetails(scheduledStartTime, actualStartTime))' }).items[0];
-        liveBroadcastContent = 'liveStreamingDetails' in video_info ? video_info.snippet.liveBroadcastContent : 'video';
-        scheduledStartTime = Object.keys(video_info).indexOf('liveStreamingDetails') >= 0 ? video_info.liveStreamingDetails.scheduledStartTime : false;
-        actualStartTime = scheduledStartTime && Object.keys(video_info.liveStreamingDetails).indexOf('actualStartTime') >= 0 ? video_info.liveStreamingDetails.actualStartTime : false;
-        return [true, liveBroadcastContent, scheduledStartTime, actualStartTime];
-      } catch (e) {
-        console.log(e);
+  switch (type) {
+    case 'youtube': {
+      let stateCheck = false;
+      let live;
+      if (index !== -1) {
+        live = sheet.getRange(index + 1, 6).getValues()[0][0];
+        if (live === 'upcoming' || live === 'live') {
+          const sst = sheet.getRange(index + 1, 7).getValues()[0][0];
+          if (now.isAfter(dayjs.dayjs(sst))) {
+            // 配信開始前かつ予定時刻を過ぎていた場合
+            stateCheck = true;
+          }
+        }
       }
-    } else if (type === 'twitch') {
-      return [true, 'live', updated, updated]
-    }
+
+      if (index === -1 || stateCheck) {
+        // Youtube APIから情報を取得し登録する
+        try {
+          video_info = YouTube.Videos.list('snippet, liveStreamingDetails', { id: id, fields: 'items(snippet(liveBroadcastContent), liveStreamingDetails(scheduledStartTime, actualStartTime))' }).items[0];
+          console.log('Check Youtube Status: ' + video_info);
+          liveBroadcastContent = 'liveStreamingDetails' in video_info ? video_info.snippet.liveBroadcastContent : 'video';
+          scheduledStartTime = Object.keys(video_info).indexOf('liveStreamingDetails') >= 0 ? video_info.liveStreamingDetails.scheduledStartTime : false;
+          actualStartTime = scheduledStartTime && Object.keys(video_info.liveStreamingDetails).indexOf('actualStartTime') >= 0 ? video_info.liveStreamingDetails.actualStartTime : false;
+
+          if (index !== -1 && liveBroadcastContent === live) {
+            // liveの状態に変化がないので通知済みとして扱い、シートの更新だけ行う
+            console.log('This bloadcast is already notify.');
+            return [false, liveBroadcastContent, scheduledStartTime, actualStartTime, index];
+          }
+
+          return [true, liveBroadcastContent, scheduledStartTime, actualStartTime, index];
+        } catch (e) {
+          console.log(e);
+        }
+      }
+      break;
+    };
+    case 'twitch': {
+      if (index === -1) {
+        return [true, 'live', updated, updated, -1]
+      }
+      break;
+    };
   }
   return [false, liveBroadcastContent, scheduledStartTime, actualStartTime];
 }
@@ -246,23 +267,41 @@ function storageForYoutube(id) {
     var live = tmp[1];
     var sst = tmp[2];
     var ast = tmp[3];
+    var sheet_update = tmp[4];
+    return_info = sheet_update >= 0 || return_info;
 
-    if (tf) {
+    if (sheet_update >= 0) {
+      // 更新
+      console.log('store update: ' + title + ', index: ' + sheet_update, ', live: ' + live);
+      sheet.getRange(sheet_update + 1, 1).setValue(title);
+      sheet.getRange(sheet_update + 1, 2).setValue(published.format('YYYY/MM/DDTHH:mm:ss'));
+      sheet.getRange(sheet_update + 1, 3).setValue(updated.format('YYYY/MM/DDTHH:mm:ss'));
+      sheet.getRange(sheet_update + 1, 4).setValue(videoId);
+      sheet.getRange(sheet_update + 1, 5).setValue(channel);
+      sheet.getRange(sheet_update + 1, 6).setValue(live);
+
+      if (sst != false) {
+        sheet.getRange(sheet_update + 1, 7).setValue(dayjs.dayjs(sst).format('YYYY/MM/DDTHH:mm:ss'));
+      }
+    } else if (sheet_update === -1) {
+      // 新規登録
       console.log('store: ' + title);
       sheet.getRange(lastRow + 1, 1).setValue(title);
       sheet.getRange(lastRow + 1, 2).setValue(published.format('YYYY/MM/DDTHH:mm:ss'));
       sheet.getRange(lastRow + 1, 3).setValue(updated.format('YYYY/MM/DDTHH:mm:ss'));
       sheet.getRange(lastRow + 1, 4).setValue(videoId);
-      sheet.getRange(lastRow + 1, 5).setValue(youtube_channels[id]);
+      sheet.getRange(lastRow + 1, 5).setValue(channel);
       sheet.getRange(lastRow + 1, 6).setValue(live);
 
       if (sst != false) {
         sheet.getRange(lastRow + 1, 7).setValue(dayjs.dayjs(sst).format('YYYY/MM/DDTHH:mm:ss'));
       }
+    }
 
+    if (tf) {
       post2discord({
         type: 'youtube',
-        channel: youtube_channels[id],
+        channel: channel,
         title: title,
         videoId: videoId,
         time: now.format('YYYY/MM/DDTHH:mm:ss'),
@@ -309,23 +348,41 @@ function storageForTwitch(id) {
     var live = tmp[1];
     var sst = tmp[2];
     var ast = tmp[3];
+    var sheet_update = tmp[4];
+    return_info = sheet_update || return_info;
 
-    if (tf) {
+    if (sheet_update >= 0) {
+      // 更新
+      console.log('store update: ' + title + ', index: ' + sheet_update, ', live: ' + live);
+      sheet.getRange(sheet_update + 1, 1).setValue(title);
+      sheet.getRange(sheet_update + 1, 2).setValue(pubDate.format('YYYY/MM/DDTHH:mm:ss'));
+      sheet.getRange(sheet_update + 1, 3).setValue(now.format('YYYY/MM/DDTHH:mm:ss'));
+      sheet.getRange(sheet_update + 1, 4).setValue(guid);
+      sheet.getRange(sheet_update + 1, 5).setValue(channel);
+      sheet.getRange(sheet_update + 1, 6).setValue(live);
+
+      if (sst != false) {
+        sheet.getRange(sheet_update + 1, 7).setValue(dayjs.dayjs(sst).format('YYYY/MM/DDTHH:mm:ss'));
+      }
+    } else if (sheet_update === -1){
+      // 新規登録
       console.log('store: ' + title);
       sheet.getRange(lastRow + 1, 1).setValue(title);
       sheet.getRange(lastRow + 1, 2).setValue(pubDate.format('YYYY/MM/DDTHH:mm:ss'));
       sheet.getRange(lastRow + 1, 3).setValue(now.format('YYYY/MM/DDTHH:mm:ss'));
       sheet.getRange(lastRow + 1, 4).setValue(guid);
-      sheet.getRange(lastRow + 1, 5).setValue(twitch_channels[id]);
+      sheet.getRange(lastRow + 1, 5).setValue(channel);
       sheet.getRange(lastRow + 1, 6).setValue(live);
 
       if (sst != false) {
         sheet.getRange(lastRow + 1, 7).setValue(dayjs.dayjs(sst).format('YYYY/MM/DDTHH:mm:ss'));
       }
+    }
 
+    if (tf) {
       post2discord({
         type: 'twitch',
-        channel: twitch_channels[id],
+        channel: channel,
         title: title,
         videoId: id,
         time: now.format('YYYY/MM/DDTHH:mm:ss'),
@@ -361,16 +418,4 @@ function store() {
   }
 
   console.log('completed!');
-}
-
-/**
- * スプレッドシートの情報をアップデートする
- */
-function update(title, lbc, sst, videoId, channel) {
-  const sheet = set_sheet(channel);
-  const lr = sheet.getLastRow();
-  const tmp = sheet.getRange(1, 4, lr).getValues().findIndex((id) => id == videoId) + 1;
-  sheet.getRange(tmp, 1).setValue(title);
-  sheet.getRange(tmp, 6).setValue(lbc);
-  sheet.getRange(tmp, 7).setValue(sst.format('YYYY/MM/DD HH:mm:ss'));
 }
